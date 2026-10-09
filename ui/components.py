@@ -2,25 +2,34 @@
 import streamlit as st
 
 from core import repo
-from ui import actions
-from ui.data import db, games_table, selected_ids, selected_reviews
+from ui import actions, theme
+from ui.data import active_filters, db, games_table, selected_ids, selected_reviews
 
 
-def analysis_data(title: str, caption: str):
-    """Common top of every analysis page: title, data for the selection, label notice.
+def analysis_data(title: str, caption: str, filtered: bool = True):
+    """Common top of every analysis page: header, data for the selection, label notice.
 
+    Applies the sidebar filters unless filtered=False.
     Returns (user, df, scheme) or stops the page if there is nothing to show.
     """
     user = st.session_state.get("user")
-    st.title(title)
-    st.caption(caption)
     ids = selected_ids()
     if not ids:
-        st.info("Pick games to compare in the sidebar, or browse the **Game Catalog**.")
+        theme.page_header("No games selected", title, caption)
+        st.info("Pick games to compare in the sidebar, or browse **All games**.")
         st.stop()
-    df, scheme = selected_reviews(user)
+    df, scheme = selected_reviews(user, filtered=filtered)
+    on = active_filters() if filtered else []
+    eyebrow = f"{len(ids)} games · {len(df):,} labeled reviews"
+    if on:
+        eyebrow += " · " + " · ".join(on)
+    if scheme["id"] != "default":
+        eyebrow += f" · {scheme['name']}"
+    theme.page_header(eyebrow, title, caption)
     unlabeled_notice(user, ids, scheme)
     if df.empty:
+        if on:
+            st.info("No reviews match the filters. Widen them in the sidebar under **Filters**.")
         st.stop()
     return user, df, scheme
 
@@ -39,7 +48,8 @@ def unlabeled_notice(user: dict | None, app_ids: list[str], scheme: dict) -> Non
             st.caption("Sign in and add your free Gemini key to label them – "
                        "your work becomes available to everyone in the catalog.")
             return
-        calls = -(-missing // 25)
+        from ui.data import user_prefs
+        calls = -(-missing // int(user_prefs(user)["batch_size"]))
         st.caption(f"About {calls} AI requests with your own API key. Progress is saved after "
                    "every batch, so you can stop and continue later.")
         if st.button(f"Label {missing} reviews now", type="primary"):
@@ -62,10 +72,10 @@ def export_buttons(user: dict | None, df, labels: dict, name: str) -> None:
     c1, c2, c3 = st.columns(3)
     stamp = __import__("datetime").date.today().isoformat()
     log = lambda fmt: repo.log_activity(db(), user["email"], "export", details={"format": fmt})  # noqa: E731
-    c1.download_button("⬇️ CSV", exports.to_csv(df, labels), f"{name}-{stamp}.csv",
-                       "text/csv", width="stretch", on_click=log, args=("csv",))
-    c2.download_button("⬇️ Excel", exports.to_excel(df, labels), f"{name}-{stamp}.xlsx",
+    c1.download_button("CSV", exports.to_csv(df, labels), f"{name}-{stamp}.csv",
+                       "text/csv", width="stretch", on_click=log, args=("csv",), icon=":material/download:")
+    c2.download_button("Excel", exports.to_excel(df, labels), f"{name}-{stamp}.xlsx",
                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                       width="stretch", on_click=log, args=("xlsx",))
-    c3.download_button("⬇️ JSON", exports.to_json(df, labels), f"{name}-{stamp}.json",
-                       "application/json", width="stretch", on_click=log, args=("json",))
+                       width="stretch", on_click=log, args=("xlsx",), icon=":material/table_view:")
+    c3.download_button("JSON", exports.to_json(df, labels), f"{name}-{stamp}.json",
+                       "application/json", width="stretch", on_click=log, args=("json",), icon=":material/data_object:")

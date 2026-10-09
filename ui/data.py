@@ -1,5 +1,7 @@
 """Shared data access for the Streamlit pages: cached loaders, the current
 game selection, colors, chart style and the user's LLM settings."""
+from urllib.parse import urlencode
+
 import pandas as pd
 import streamlit as st
 
@@ -8,12 +10,11 @@ from core import repo
 from core.db import get_db
 from core.llm import LLMConfig
 
-GAME_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7",
-               "#e34948"]
+from ui.theme import GAME_COLORS, HEATMAP_SCALE, SENTIMENT_COLORS  # noqa: F401 (re-exported)
+from ui.theme import style_fig as _style_fig
+
 MAX_COMPARE = len(GAME_COLORS)
-SENTIMENT_COLORS = {"negative": "#e34948", "neutral": "#c9c8c3", "positive": "#2a78d6"}
 SENTIMENT_ORDER = ["negative", "neutral", "positive"]
-HEATMAP_SCALE = ["#f3f8fe", "#9ec5f4", "#3987e5", "#184f95"]
 
 
 @st.cache_resource
@@ -61,12 +62,80 @@ def select_games(app_ids: list[str], scheme_id: str | None = None) -> None:
         st.session_state["_pending_scheme"] = scheme_id
 
 
+# --- Global filters + shareable links ------------------------------------------
+PERIODS = {"all": "All time", "7": "Last 7 days", "30": "Last 30 days", "90": "Last 90 days",
+           "180": "Last 180 days"}
+FILTER_DEFAULTS = {"f_period": "all", "f_stars": (1, 5)}
+
+
+def active_filters() -> list[str]:
+    """Human-readable list of filters that are switched on (empty = showing everything)."""
+    out = []
+    if st.session_state.get("f_period", "all") != "all":
+        out.append(PERIODS[st.session_state["f_period"]])
+    lo, hi = st.session_state.get("f_stars", (1, 5))
+    if (lo, hi) != (1, 5):
+        out.append(f"{lo}★" if lo == hi else f"{lo}–{hi}★")
+    return out
+
+
+def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df
+    period = st.session_state.get("f_period", "all")
+    if period != "all":
+        since = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=int(period))
+        df = df[df["review_date"] >= since]
+    lo, hi = st.session_state.get("f_stars", (1, 5))
+    return df[df["rating"].between(lo, hi)]
+
+
+def _read_query_params(names: dict) -> None:
+    """First run of a session: take games + filters from a shared link (?games=...&period=...)."""
+    if st.session_state.get("_qp_read"):
+        return
+    st.session_state["_qp_read"] = True
+    qp = st.query_params
+    ids = [a for a in qp.get("games", "").split(",") if a in names]
+    if ids:
+        st.session_state["selected_games"] = ids[:MAX_COMPARE]
+    if qp.get("period") in PERIODS:
+        st.session_state["f_period"] = qp["period"]
+    try:
+        lo, hi = (int(x) for x in qp.get("stars", "").split("-"))
+        if 1 <= lo <= hi <= 5:
+            st.session_state["f_stars"] = (lo, hi)
+    except ValueError:
+        pass
+
+
+def share_params() -> dict:
+    params = {"games": ",".join(selected_ids())}
+    if st.session_state.get("f_period", "all") != "all":
+        params["period"] = st.session_state["f_period"]
+    if tuple(st.session_state.get("f_stars", (1, 5))) != (1, 5):
+        params["stars"] = "-".join(str(x) for x in st.session_state["f_stars"])
+    return params
+
+
+def share_url() -> str:
+    """Link that opens the current page with the same games and filters."""
+    base = (st.context.url or config.PUBLIC_URL).split("?")[0]
+    return f"{base}?{urlencode(share_params(), safe=',')}"
+
+
+def _reset_filters() -> None:
+    for k, v in FILTER_DEFAULTS.items():
+        st.session_state[k] = v
+
+
 def sidebar_selectors(user: dict | None) -> None:
     games = games_table()
     if games.empty:
         st.sidebar.info("The catalog is empty.")
         return
     names = dict(zip(games["app_id"], games["name"]))
+    _read_query_params(names)
     if "_pending_selection" in st.session_state:
         st.session_state["selected_games"] = st.session_state.pop("_pending_selection")
     if "_pending_scheme" in st.session_state:
@@ -76,8 +145,28 @@ def sidebar_selectors(user: dict | None) -> None:
             or list(names)[:4]
     # drop games that disappeared from the catalog (hidden/deleted)
     st.session_state["selected_games"] = [a for a in selected_ids() if a in names]
-    st.sidebar.multiselect("Games to compare", list(names), key="selected_games",
+    st.sidebar.multiselect("Comparing", list(names), key="selected_games",
                            format_func=lambda a: names.get(a, a), max_selections=MAX_COMPARE)
+
+    for k, v in FILTER_DEFAULTS.items():
+        st.session_state.setdefault(k, v)
+    on = active_filters()
+    with st.sidebar.expander(f"Filters · {len(on)} on" if on else "Filters",
+                             icon=":material/filter_list:", expanded=bool(on)):
+        st.selectbox("Review date", list(PERIODS), key="f_period", format_func=PERIODS.get)
+        st.slider("Stars", 1, 5, key="f_stars")
+        if on:
+            st.button("Reset filters", on_click=_reset_filters, width="stretch")
+    with st.sidebar.popover("Share this view", icon=":material/link:", width="stretch"):
+        st.caption("Anyone with this link sees the same games and filters on this page.")
+        st.code(share_url(), language=None, wrap_lines=True)
+    # keep the address bar in sync, so copying the browser URL also works
+    for k, v in share_params().items():
+        if st.query_params.get(k) != v:
+            st.query_params[k] = v
+    for k in ("period", "stars"):
+        if k in st.query_params and k not in share_params():
+            del st.query_params[k]
     schemes = repo.list_schemes(db(), user["email"] if user else None)
     if len(schemes) > 1:
         scheme_names = {s["id"]: s["name"] for s in schemes}
@@ -88,9 +177,10 @@ def sidebar_selectors(user: dict | None) -> None:
                              format_func=lambda s: scheme_names[s])
 
 
-def selected_reviews(user: dict | None) -> tuple[pd.DataFrame, dict]:
+def selected_reviews(user: dict | None, filtered: bool = True) -> tuple[pd.DataFrame, dict]:
     scheme = selected_scheme(user)
-    return labeled(tuple(sorted(selected_ids())), scheme["id"]), scheme
+    df = labeled(tuple(sorted(selected_ids())), scheme["id"])
+    return (apply_filters(df) if filtered else df), scheme
 
 
 def color_map(app_names: list[str]) -> dict:
@@ -107,12 +197,7 @@ def color_map(app_names: list[str]) -> dict:
 
 
 def style_fig(fig, height: int = 380):
-    fig.update_layout(height=height, margin=dict(l=8, r=8, t=36, b=8),
-                      legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, title=None),
-                      font=dict(size=13), bargap=0.25)
-    fig.update_xaxes(showgrid=False)
-    fig.update_yaxes(gridcolor="rgba(0,0,0,0.07)")
-    return fig
+    return _style_fig(fig, height)
 
 
 def explode_topics(df: pd.DataFrame, labels: dict) -> pd.DataFrame:

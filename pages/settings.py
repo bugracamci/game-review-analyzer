@@ -7,6 +7,7 @@ from html import escape
 import config
 from core import crypto, repo
 from core.llm import BadKey, list_gemini_models
+from ui import theme
 from ui.auth import require_login
 from ui.data import db, refresh_caches, user_prefs
 
@@ -18,13 +19,13 @@ def _models(key: str) -> list[str]:
 
 
 user = st.session_state.get("user")
-st.title("Settings")
+theme.page_header("You", "Settings")
 require_login(user, "change settings")
 email = user["email"]
 prefs = user_prefs(user)
 
 tab_keys, tab_ai, tab_topics, tab_profile, tab_account = st.tabs(
-    ["🔑 API keys", "🤖 AI options", "🏷️ Topic lists", "👤 Profile", "🔒 Privacy & account"])
+    [":material/key: API keys", ":material/smart_toy: AI options", ":material/label: Topic lists", ":material/person: Profile", ":material/lock: Privacy & account"])
 
 # =============================================================================
 with tab_keys:
@@ -95,7 +96,7 @@ with tab_ai:
                              help="Flash-Lite models have the largest free quota. "
                                   "If a model is busy or out of quota, the app switches "
                                   "to a fallback automatically.")
-        batch = st.slider("Reviews per AI request", 10, 50, int(prefs["batch_size"]), step=5,
+        batch = st.slider("Reviews per AI request", 10, 100, int(prefs["batch_size"]), step=5,
                           help="Bigger batches = fewer requests, but a slightly higher chance "
                                "the model skips a review (skipped ones are retried).")
         per_game = st.slider("Default reviews per new game", 100, config.MAX_REVIEWS_PER_GAME,

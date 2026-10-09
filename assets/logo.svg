@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="40" viewBox="0 0 220 40" fill="none">
+  <circle cx="20" cy="20" r="16" stroke="#7CE3A0" stroke-width="1.8"/>
+  <circle cx="20" cy="20" r="10" stroke="#7CE3A0" stroke-width="1.8" opacity="0.45"/>
+  <circle cx="20" cy="20" r="4.5" stroke="#7CE3A0" stroke-width="1.8" opacity="0.3"/>
+  <path d="M20 20L34 12.5" stroke="#7CE3A0" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="28" cy="15.5" r="2.8" fill="#FFB547"/>
+  <text x="46" y="26" fill="#FFFFFF" font-family="Sora, Figtree, sans-serif" font-size="17" font-weight="700">Game Review Radar</text>
+</svg>

@@ -25,6 +25,8 @@ def _setting(name: str, default: str = "") -> str:
 
 APP_NAME = "Game Review Radar"
 APP_TAGLINE = "Free competitor review analysis for small and indie game teams"
+# Fallback base URL for share links (normally read from the browser request).
+PUBLIC_URL = _setting("PUBLIC_URL", "https://game-review-analyzer.streamlit.app")
 
 # --- Storage ------------------------------------------------------------------
 # Local default: a SQLite file. Production: a Postgres URL (Supabase).
@@ -49,12 +51,12 @@ GEMINI_FALLBACK_MODELS = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-f
                           "gemini-3.8-flash"]
 DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 
-DEFAULT_BATCH_SIZE = 25          # reviews per LLM call
+DEFAULT_BATCH_SIZE = 50          # reviews per LLM call (fewer calls = more reviews per free quota)
 MIN_SECONDS_BETWEEN_CALLS = 7    # stay under free-tier requests-per-minute limits
 MAX_RETRIES = 6
 
 # --- Data collection ------------------------------------------------------------
-DEFAULT_REVIEWS_PER_GAME = 400
+DEFAULT_REVIEWS_PER_GAME = 800
 MAX_REVIEWS_PER_GAME = 2000
 # (store country, review language, label)
 MARKETS = [

@@ -48,17 +48,25 @@ def is_admin(user: dict | None) -> bool:
 
 
 def sidebar_account(user: dict | None) -> None:
+    from ui.theme import esc, html
     if user:
         label = user.get("display_name") or user.get("name") or user["email"]
-        st.sidebar.markdown(f"**👤 {label}**" + (" · admin" if is_admin(user) else ""))
+        html(f'<div style="display:flex;align-items:center;gap:10px;padding:4px 2px 8px">'
+             f'<span style="width:34px;height:34px;border-radius:999px;background:#16223A;color:#7CE3A0;'
+             f'display:inline-flex;align-items:center;justify-content:center;font-weight:700">'
+             f'{esc(label[:1].upper())}</span><div><div style="font-weight:600">{esc(label)}</div>'
+             f'<div style="font-size:12px;color:#8A95A8">{"Admin" if is_admin(user) else "Member"}</div></div></div>',
+             st.sidebar)
         if config.DEV_LOGIN_EMAIL:
             st.sidebar.caption("Local dev login")
         elif st.sidebar.button("Sign out", width="stretch"):
             st.logout()
     elif auth_configured():
+        html('<div style="font-size:14px;color:#C9D2E0;line-height:1.45;padding:2px 2px 10px">'
+             'Free for indie teams. Sign in to add games, export data and save comparisons.</div>',
+             st.sidebar)
         if st.sidebar.button("Sign in with Google", type="primary", width="stretch"):
             st.login("google")
-        st.sidebar.caption("Free. Lets you add games, export data and save comparisons.")
 
 
 def require_login(user: dict | None, what: str = "use this page") -> None:

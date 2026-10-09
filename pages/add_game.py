@@ -5,27 +5,28 @@ import streamlit as st
 
 import config
 from core import fetcher, limits, repo
+from ui import theme
 from ui import actions
 from ui.auth import is_admin, require_login
 from ui.data import db, select_games, selected_ids, user_api_key, user_prefs
 
 user = st.session_state.get("user")
-st.title("Add a game")
-st.caption("Any Google Play game. Its reviews are downloaded, labeled with your own API key "
-           "and added to the shared catalog, so the whole community can compare it.")
+theme.page_header("Catalog", "Add a game",
+                  "Any Google Play game. Its newest reviews are downloaded, labeled with your own "
+                  "API key and added to the shared catalog for the whole community.")
 require_login(user, "add games")
 
 prefs = user_prefs(user)
 ok, remaining = limits.check(db(), user["email"], "new_games_per_day", is_admin(user))
 has_key = bool(user_api_key(user, prefs["provider"]))
-c1, c2 = st.columns(2)
-c1.metric("New games you can add today", "∞" if is_admin(user) else remaining)
-c2.metric("API key", "✅ ready" if has_key else "❌ missing")
+theme.pills([("New games today", "unlimited" if is_admin(user) else f"{remaining} left",
+              is_admin(user) or remaining > 0),
+             ("API key", "ready" if has_key else "missing", has_key)])
 if not has_key:
     st.warning(actions.NO_KEY_MSG)
 
 # --- 1. Find the game -------------------------------------------------------------
-st.subheader("1 · Find the game")
+theme.section("Find the game", 1)
 tab_link, tab_search = st.tabs(["Paste a Google Play link", "Search by name"])
 with tab_link:
     link = st.text_input("Google Play link or package name",
@@ -73,14 +74,19 @@ except ValueError as e:
     st.stop()
 
 # --- 2. Confirm ---------------------------------------------------------------------
-st.subheader("2 · Check it's the right game")
-with st.container(border=True):
-    cols = st.columns([1, 6])
-    if game.get("icon_url"):
-        cols[0].image(game["icon_url"], width=72)
-    rating = f"{game['avg_rating']:.1f}★" if game.get("avg_rating") else "no rating"
-    cols[1].markdown(f"### {game['name']}\n{game.get('developer')} · {game.get('genre')} · "
-                     f"{game.get('installs')} installs · {rating}")
+theme.section("Check it's the right game", 2,
+              "Google Play is full of copycats – make sure the developer is right.")
+rating = f"{game['avg_rating']:.1f}★" if game.get("avg_rating") else "no rating"
+icon = (f'<img src="{theme.esc(game["icon_url"])}" alt="" width="72" height="72" style="border-radius:16px">'
+        if game.get("icon_url") else theme.tile(game["name"], theme.GAME_COLORS[0], 72))
+theme.html(f'<div class="gr-panel" style="padding:20px;display:flex;gap:18px;align-items:center">{icon}'
+           f'<div style="flex:1;min-width:0"><div style="font-family:Sora,sans-serif;font-size:22px;'
+           f'font-weight:600">{theme.esc(game["name"])}</div>'
+           f'<div style="color:{theme.MUTED};font-size:14px;margin-top:4px">'
+           f'{theme.esc(game.get("developer") or "")} · {theme.esc(game.get("genre") or "")} · '
+           f'{theme.esc(str(game.get("installs") or "?"))} installs · '
+           f'<span class="mono">{theme.esc(app_id)}</span></div></div>'
+           f'<span class="mono" style="font-size:20px;font-weight:700">{rating}</span></div>')
 existing = repo.get_game(db(), app_id)
 if existing and not existing.get("is_hidden"):
     st.info("This game is already in the catalog. You can compare it right away, "
@@ -94,7 +100,7 @@ elif existing:
     st.stop()
 
 # --- 3. Options + run -----------------------------------------------------------------
-st.subheader("3 · Download and analyze")
+theme.section("Download and analyze", 3)
 markets = {m[0]: m for m in config.MARKETS}
 c1, c2 = st.columns(2)
 market = c1.selectbox("Store country & language", list(markets),
@@ -106,7 +112,7 @@ count = c2.slider("Newest reviews to download", 100, config.MAX_REVIEWS_PER_GAME
 calls = -(-count // int(prefs["batch_size"]))
 st.caption(f"≈ {calls} AI requests with your key ({prefs['model']}). Free Gemini keys have a "
            "daily request limit; if it runs out, labeling pauses and you can continue tomorrow "
-           "from the Overview page. More than 400 reviews is best with a paid key.")
+           "from the Overview page.")
 
 if not existing and not ok:
     st.warning("You've reached today's limit for new games. It resets within 24 hours.")
@@ -122,5 +128,5 @@ if st.button("Add & analyze", type="primary", disabled=not has_key):
         st.session_state.pop("add_results", None)
         if summary and not summary.get("stopped"):
             st.success(f"{game['name']} is in the catalog and selected for comparison.")
-            st.balloons()
-        st.page_link("pages/overview.py", label="Go to the comparison →", icon="📊")
+        st.page_link("pages/overview.py", label="Go to the comparison",
+                     icon=":material/arrow_forward:")

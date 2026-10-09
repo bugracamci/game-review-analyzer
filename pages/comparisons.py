@@ -4,20 +4,21 @@ from html import escape
 import streamlit as st
 
 from core import repo
+from ui import theme
 from ui.auth import require_login
 from ui.components import export_buttons, game_names
 from ui.data import db, labeled, select_games, selected_ids, selected_scheme
 
 user = st.session_state.get("user")
-st.title("My comparisons & export")
-st.caption("Save the games you're comparing, come back to them later and download the data.")
+theme.page_header("Catalog", "Saved comparisons & export",
+                  "Save the games you're comparing, come back to them later and download the data.")
 require_login(user, "save comparisons and download data")
 
 names = game_names()
 scheme = selected_scheme(user)
 
 # --- Save the current selection ---------------------------------------------------
-st.subheader("Save the current selection")
+theme.section("Save the current selection")
 current = selected_ids()
 if not current:
     st.info("Pick games in the sidebar first.")
@@ -31,7 +32,7 @@ else:
             st.success("Saved.")
 
 # --- Saved comparisons --------------------------------------------------------------
-st.subheader("Saved comparisons")
+theme.section("Saved comparisons")
 saved = repo.list_comparisons(db(), user["email"])
 if not saved:
     st.caption("Nothing saved yet.")
@@ -49,7 +50,7 @@ for c in saved:
             st.rerun()
 
 # --- Export -----------------------------------------------------------------------
-st.subheader("Download data")
+theme.section("Download data")
 st.caption("Every labeled review of the games in the sidebar: date, stars, sentiment, topics, "
            "feature request and the review text. Excel adds a summary and a feature-request sheet.")
 if current:

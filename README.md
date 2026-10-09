@@ -22,6 +22,9 @@ community project.
 |---|---|
 | 📊 | **Compare up to 8 games**: sentiment, topic heatmaps (all / negative / positive reviews), stars vs. text |
 | 📈 | **Trends** by week or month, and **sentiment by app version** to spot updates that upset players |
+| 🔁 | **Before / after an update**: pick two app versions (or an update date) and see which complaints grew or shrank |
+| 🎚️ | **Global filters**: review date (last 7–180 days) and star range, applied to every analysis page |
+| 🔗 | **Shareable links**: the URL carries the games and filters, so a comparison can be posted or sent as-is |
 | 🔎 | **Review Explorer**: real quotes behind every number, with filters and text search |
 | 💡 | **AI brief** for LiveOps, UA and game design, cached and shared per set of games |
 | ➕ | **Add any Google Play game** by link or by search, in 8 store countries and languages |
@@ -35,9 +38,9 @@ community project.
 Browsing is open to everyone. Signing in with Google (free) unlocks adding games, labeling, exports
 and saved comparisons.
 
-| Game Catalog | About & Community |
-|---|---|
-| ![Catalog](screenshots/09_catalog.jpg) | ![Community](screenshots/10_community.jpg) |
+| Before / after an update | Game Catalog | About & Community |
+|---|---|---|
+| ![Before and after](screenshots/11_before_after.jpg) | ![Catalog](screenshots/09_catalog.jpg) | ![Community](screenshots/10_community.jpg) |
 
 ---
 
@@ -71,7 +74,7 @@ The catalog started with 1,600 reviews of *Survivor.io*, *Vampire Survivors*, *B
 flowchart LR
     U[User<br>Google sign-in] --> S[Streamlit app]
     S -->|add game| GP[Google Play<br>public reviews]
-    S -->|batches of 25,<br>user's own key| LLM[Gemini / Groq]
+    S -->|batches of 50,<br>user's own key| LLM[Gemini / Groq]
     GP --> DB[(Supabase<br>Postgres)]
     LLM -->|JSON labels| DB
     DB --> S
@@ -96,7 +99,7 @@ scripts/   migration, secrets, weekly refresh, label agreement check, publishing
 | **Google sign-in** (Streamlit `st.login`, OIDC) | No passwords stored, no password reset flow to build |
 | **One SQL layer for SQLite and Postgres** | Same queries locally (SQLite file) and in production (Supabase); ~100 lines, no ORM |
 | **Shared catalog, private workspaces** | Games and standard labels are shared, so the dataset grows with every user. Comparisons and custom topic lists stay private |
-| **Batches of 25 reviews per call** | 400 reviews take 16 calls instead of 400, which fits free-tier limits |
+| **Batches of 50 reviews per call** | 800 reviews take 16 calls instead of 800, which fits free-tier daily limits |
 | **Fixed standard topic list** | Free-form tags differ per game; a fixed list keeps games comparable. Custom lists are opt-in |
 | **Error-specific LLM handling** | 429 → wait (server's `retryDelay`); no quota or 503 → fallback model; bad key → stop and tell the user |
 | **Resumable labeling** | Saved after every batch; quota runs out → continue tomorrow, nothing lost |

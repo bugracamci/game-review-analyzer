@@ -5,6 +5,7 @@ import streamlit as st
 
 import config
 from core import limits, repo
+from ui import theme
 from ui import actions
 from ui.auth import is_admin
 from ui.data import db, featured_ids, games_table, refresh_caches, style_fig
@@ -14,16 +15,14 @@ if not is_admin(user):
     st.error("Admins only.")
     st.stop()
 
-st.title("Admin")
+theme.page_header("Admin", "Control room")
 s = repo.stats(db())
-cols = st.columns(6)
-for col, (label, key) in zip(cols, [("Users", "users"), ("Games", "games"), ("Reviews", "reviews"),
-                                    ("Labels", "labels"), ("Actions (24h)", "actions_24h"),
-                                    ("New messages", "new_feedback")]):
-    col.metric(label, f"{s[key]:,}")
+theme.kpis([(label, f"{s[key]:,}") for label, key in
+            [("Users", "users"), ("Games", "games"), ("Reviews", "reviews"), ("Labels", "labels"),
+             ("Actions (24h)", "actions_24h"), ("New messages", "new_feedback")]])
 
 tab_inbox, tab_users, tab_catalog, tab_activity, tab_settings = st.tabs(
-    [f"📬 Inbox ({s['new_feedback']})", "👥 Users", "🗂️ Catalog", "📜 Activity", "⚙️ Settings"])
+    [f":material/inbox: Inbox ({s['new_feedback']})", ":material/group: Users", ":material/grid_view: Catalog", ":material/history: Activity", ":material/tune: Settings"])
 
 # =============================================================================
 with tab_inbox:
@@ -57,7 +56,7 @@ with tab_users:
         signups = pd.to_datetime(users["created_at"], utc=True).dt.date.value_counts().sort_index()
         fig = px.bar(x=signups.index, y=signups.values, labels={"x": "", "y": "New users"})
         fig.update_traces(marker_color="#2a78d6", hovertemplate="%{x}: %{y}<extra></extra>")
-        st.plotly_chart(style_fig(fig, 260), width="stretch")
+        st.plotly_chart(style_fig(fig, 260), width="stretch", theme=None)
 
 # =============================================================================
 with tab_catalog:

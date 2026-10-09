@@ -1,6 +1,6 @@
 #!/bin/bash
 # Publish this project to a public GitHub repository (safe to run again for updates).
-# Usage (from the project folder):  bash scripts/publish_github.sh
+# Usage (from the project folder):  bash scripts/publish_github.sh ["commit message"]
 cd "$(dirname "$0")/.." || exit 1
 REPO_NAME="game-review-analyzer"
 export GIT_PAGER=cat GH_PAGER=cat
@@ -49,7 +49,7 @@ echo "== 5. Commit =="
 if git diff --cached --quiet; then
   echo "(no new changes to commit)"
 else
-  git commit -q -m "Mobile Game Review Analyzer: LLM-labeled Google Play reviews + Streamlit dashboard
+  git commit -q -m "${1:-Update Game Review Radar}
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01LCPn85bmg1eYgNHRzJBVTL" || exit 1

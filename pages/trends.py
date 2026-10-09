@@ -2,6 +2,7 @@
 import plotly.express as px
 import streamlit as st
 
+from ui import theme
 from ui.components import analysis_data
 from ui.data import color_map, explode_topics, style_fig
 
@@ -32,7 +33,7 @@ trend = (data.groupby(["game", "period"])
              .reset_index())
 trend = trend[trend["reviews"] >= MIN_REVIEWS]
 
-st.subheader(f"Share of negative reviews per {period.lower()}")
+theme.section(f"Share of negative reviews per {period.lower()}")
 if trend.empty:
     st.info(f"Not enough data: every {period.lower()} has fewer than {MIN_REVIEWS} reviews. "
             "Try grouping by month or picking another topic.")
@@ -45,11 +46,11 @@ else:
                                     "<br>%{customdata[0]} reviews<extra>%{fullData.name}</extra>")
     fig.update_yaxes(tickformat=".0%", rangemode="tozero")
     fig.update_layout(hovermode="x unified")
-    st.plotly_chart(style_fig(fig, 400), width="stretch")
+    st.plotly_chart(style_fig(fig, 400), width="stretch", theme=None)
     st.caption(f"Periods with fewer than {MIN_REVIEWS} reviews are hidden.")
 
 # --- By app version: did an update make players angry? -----------------------
-st.subheader("Sentiment by app version")
+theme.section("Sentiment by app version")
 game = st.selectbox("Game", sorted(df["game"].unique()))
 g = df[(df["game"] == game) & df["version"].notna()]
 by_version = (g.groupby("version")
@@ -68,7 +69,7 @@ else:
                                     "<extra></extra>")
     fig.update_yaxes(tickformat=".0%")
     fig.update_xaxes(type="category")
-    st.plotly_chart(style_fig(fig, 340), width="stretch")
+    st.plotly_chart(style_fig(fig, 340), width="stretch", theme=None)
     st.caption("A jump after a version points to an update worth checking (balance change, "
                "new monetization, bugs). Versions with fewer than "
                f"{MIN_REVIEWS} reviews are hidden.")
