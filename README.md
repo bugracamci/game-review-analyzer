@@ -159,5 +159,5 @@ Command-line tools (server key): `fetch_reviews.py`, `classify_reviews.py`, `gen
 
 ---
 
-Built by **Cengiz Buğra Camcı** for the indie game community. Say hello on the app's
+Built by **Buğra Camcı** for the indie game community. Say hello on the app's
 **About & Community** page.
