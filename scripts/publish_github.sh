@@ -49,10 +49,7 @@ echo "== 5. Commit =="
 if git diff --cached --quiet; then
   echo "(no new changes to commit)"
 else
-  git commit -q -m "${1:-Update Game Review Radar}
-
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01LCPn85bmg1eYgNHRzJBVTL" || exit 1
+  git commit -q -m "${1:-Update Game Review Radar}" || exit 1
 fi
 git rev-parse HEAD >/dev/null 2>&1 || { echo "No commit exists - stopping."; exit 1; }
 
