@@ -1,0 +1,25 @@
+# Template: copy to .github/workflows/weekly_refresh.yml (see README / notes).
+# Every Monday: download new reviews for every catalog game and label them.
+# Also keeps the free Supabase database active (it pauses after 7 idle days).
+name: Weekly catalog refresh
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"      # Mondays 03:17 UTC
+  workflow_dispatch: {}        # "Run workflow" button on GitHub
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python scripts/refresh_catalog.py --max-calls 18 --per-game 200
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

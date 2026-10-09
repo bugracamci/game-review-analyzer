@@ -1,6 +1,11 @@
 requests>=2.31
 pandas>=2.0
-streamlit>=1.36
+streamlit>=1.50
+Authlib>=1.3.2
+httpx>=0.27          # needed by Authlib for Google sign-in
 plotly>=5.20
 python-dotenv>=1.0
 google-play-scraper>=1.2.7
+psycopg2-binary>=2.9
+cryptography>=42
+openpyxl>=3.1

@@ -1,6 +1,6 @@
 # Secrets - never commit
 .env
-.streamlit/secrets.toml
+.streamlit/secrets*.toml
 
 # Local environment
 .venv/
@@ -13,3 +13,6 @@ notes/
 
 # Run logs
 logs/
+
+# Local SQLite database (production uses Supabase)
+data/radar.db

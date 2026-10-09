@@ -2,26 +2,26 @@
 import pandas as pd
 import streamlit as st
 
-from config import SENTIMENTS, TOPIC_LABELS
-from dashboard_data import explode_topics, filtered_reviews
+from config import SENTIMENTS
+from ui.components import analysis_data, export_buttons
+from ui.data import explode_topics
 
-st.title("Review Explorer")
-st.caption("Pick a topic and see what players actually wrote.")
-
-df = filtered_reviews()
-if df.empty:
-    st.info("Select at least one game in the sidebar.")
-    st.stop()
+user, df, scheme = analysis_data("Review Explorer",
+                                 "Pick a topic and see what players actually wrote.")
+labels = scheme["labels"]
 
 c1, c2, c3 = st.columns(3)
-topic = c1.selectbox("Topic", [TOPIC_LABELS[t] for t in TOPIC_LABELS])
+topic = c1.selectbox("Topic", list(labels.values()))
 sentiments = c2.multiselect("Sentiment", SENTIMENTS, default=["negative"])
 stars = c3.slider("Stars", 1, 5, (1, 5))
+search = st.text_input("Search in review text (optional)", placeholder="e.g. energy, ads, crash")
 
-rows = explode_topics(df)
+rows = explode_topics(df, labels)
 rows = rows[(rows["topic_label"] == topic)
             & rows["sentiment"].isin(sentiments)
             & rows["rating"].between(*stars)]
+if search.strip():
+    rows = rows[rows["content"].str.contains(search.strip(), case=False, regex=False, na=False)]
 
 st.markdown(f"**{len(rows)} reviews match.** Most-liked and most detailed first.")
 rows = rows.assign(length=rows["content"].str.len()).sort_values(
@@ -50,5 +50,9 @@ requests_df = requests_df.sort_values(["game", "thumbs_up"], ascending=[True, Fa
 st.dataframe(
     requests_df.rename(columns={"game": "Game", "rating": "Stars",
                                 "feature_request": "Request", "thumbs_up": "👍"}),
-    hide_index=True, use_container_width=True, height=360,
+    hide_index=True, width="stretch", height=360,
 )
+
+st.divider()
+st.subheader("Download")
+export_buttons(user, df, labels, "selected-games")

@@ -1,35 +1,44 @@
-"""Mobile Game Review Analyzer - Streamlit entry point.
+"""Game Review Radar - Streamlit entry point.
 
 Run locally:  streamlit run app.py
 """
 import streamlit as st
 
-from config import DB_PATH
-from dashboard_data import load_reviews, sidebar_game_filter
+import config
+from ui.auth import current_user, is_admin, sidebar_account
+from ui.data import sidebar_selectors
 
-st.set_page_config(page_title="Mobile Game Review Analyzer", page_icon="🎮", layout="wide")
+st.set_page_config(page_title=config.APP_NAME, page_icon="📡", layout="wide")
 
-if not DB_PATH.exists():
-    st.error("No data yet. Run `python fetch_reviews.py` and `python classify_reviews.py` first.")
-    st.stop()
+user = current_user()
+st.session_state["user"] = user
 
-reviews = load_reviews()
-if reviews.empty:
-    st.error("The database has no labeled reviews yet. Run `python classify_reviews.py`.")
-    st.stop()
+sections = {
+    "Analyze": [
+        st.Page("pages/overview.py", title="Overview", icon="📊", default=True),
+        st.Page("pages/trends.py", title="Trends", icon="📈"),
+        st.Page("pages/explorer.py", title="Review Explorer", icon="🔎"),
+        st.Page("pages/insights.py", title="Insights", icon="💡"),
+    ],
+    "Catalog": [
+        st.Page("pages/catalog.py", title="Game Catalog", icon="🗂️"),
+        st.Page("pages/add_game.py", title="Add a Game", icon="➕"),
+        st.Page("pages/comparisons.py", title="My Comparisons & Export", icon="📁"),
+    ],
+    "You": [
+        st.Page("pages/settings.py", title="Settings", icon="⚙️"),
+        st.Page("pages/community.py", title="About & Community", icon="🤝"),
+    ],
+}
+if is_admin(user):
+    sections["Admin"] = [st.Page("pages/admin.py", title="Admin", icon="🛡️")]
 
-st.sidebar.title("🎮 Review Analyzer")
-sidebar_game_filter(reviews)
+page = st.navigation(sections)
 
-page = st.navigation([
-    st.Page("pages/overview.py", title="Overview", icon="📊", default=True),
-    st.Page("pages/trends.py", title="Trends", icon="📈"),
-    st.Page("pages/explorer.py", title="Review Explorer", icon="🔎"),
-    st.Page("pages/insights.py", title="Insights", icon="💡"),
-])
+st.sidebar.markdown(f"### 📡 {config.APP_NAME}")
+st.sidebar.caption(config.APP_TAGLINE)
+sidebar_account(user)
 st.sidebar.divider()
-st.sidebar.caption(
-    "Labels by an LLM (Gemini Flash) in batches of 25. "
-    "This dashboard reads saved results only - no API calls."
-)
+sidebar_selectors(user)
+
 page.run()

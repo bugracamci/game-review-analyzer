@@ -17,6 +17,10 @@ fi
 
 echo "== 2. GitHub login =="
 gh auth status >/dev/null 2>&1 || gh auth login --hostname github.com --git-protocol https --web || exit 1
+if [ -d .github/workflows ] && ! gh auth status 2>&1 | grep -q "workflow"; then
+  echo "GitHub needs one extra permission to upload the weekly automation (workflow files)."
+  gh auth refresh -h github.com -s workflow || exit 1
+fi
 gh auth setup-git >/dev/null 2>&1   # lets git push with the gh login
 LOGIN=$(gh api user -q .login) || exit 1
 GH_ID=$(gh api user -q .id)
@@ -32,10 +36,11 @@ git config user.email "$EMAIL"
 git add -A
 
 echo "== 4. Safety check: no secrets in the commit =="
-if git diff --cached --name-only | grep -qE '(^|/)\.env$|secrets\.toml'; then
+if git diff --cached --name-only | grep -qE '(^|/)\.env$|secrets.*\.toml'; then
   echo "STOP: a secrets file is staged. Nothing was published."; exit 1
 fi
-if git diff --cached -U0 | grep -E '^\+' | grep -qE 'AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_-]{20,}|gsk_[0-9A-Za-z]{20,}'; then
+# (this script itself contains the patterns below, so it is excluded from the scan)
+if git diff --cached -U0 -- . ':(exclude)scripts/publish_github.sh' | grep -E '^\+' | grep -qE 'AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_-]{20,}|gsk_[0-9A-Za-z]{20,}|GOCSPX-|postgres(ql)?://[^:]+:[^@]+@'; then
   echo "STOP: something that looks like an API key is staged. Nothing was published."; exit 1
 fi
 echo "OK - $(git diff --cached --name-only | wc -l | tr -d ' ') files staged, no secrets found."

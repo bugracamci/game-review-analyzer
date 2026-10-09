@@ -2,29 +2,26 @@
 import plotly.express as px
 import streamlit as st
 
-from config import TOPIC_LABELS
-from dashboard_data import (explode_topics, filtered_reviews, game_color_map, load_reviews,
-                            style_fig)
+from ui.components import analysis_data
+from ui.data import color_map, explode_topics, style_fig
 
 MIN_REVIEWS = 10  # periods with fewer reviews are too noisy to show
 
-st.title("Trends over time")
-st.caption("Each game's sample is its latest 400 reviews, so busier games cover a shorter period.")
-
-df = filtered_reviews().dropna(subset=["review_date"])
-if df.empty:
-    st.info("Select at least one game in the sidebar.")
-    st.stop()
-colors = game_color_map(load_reviews()["game"].unique())
+user, df, scheme = analysis_data(
+    "Trends over time",
+    "Each game's sample is its latest reviews, so busier games cover a shorter period.")
+labels = scheme["labels"]
+df = df.dropna(subset=["review_date"])
+colors = color_map(sorted(df["game"].unique()))
 
 c1, c2 = st.columns(2)
 period = c1.radio("Group by", ["Week", "Month"], horizontal=True)
-topic_options = ["Any topic"] + [TOPIC_LABELS[t] for t in TOPIC_LABELS]
+topic_options = ["Any topic"] + list(labels.values())
 topic = c2.selectbox("Only reviews about", topic_options)
 
 data = df
 if topic != "Any topic":
-    data = explode_topics(df)
+    data = explode_topics(df, labels)
     data = data[data["topic_label"] == topic]
 
 freq = "W" if period == "Week" else "M"
@@ -48,7 +45,7 @@ else:
                                     "<br>%{customdata[0]} reviews<extra>%{fullData.name}</extra>")
     fig.update_yaxes(tickformat=".0%", rangemode="tozero")
     fig.update_layout(hovermode="x unified")
-    st.plotly_chart(style_fig(fig, 400), use_container_width=True)
+    st.plotly_chart(style_fig(fig, 400), width="stretch")
     st.caption(f"Periods with fewer than {MIN_REVIEWS} reviews are hidden.")
 
 # --- By app version: did an update make players angry? -----------------------
@@ -71,7 +68,7 @@ else:
                                     "<extra></extra>")
     fig.update_yaxes(tickformat=".0%")
     fig.update_xaxes(type="category")
-    st.plotly_chart(style_fig(fig, 340), use_container_width=True)
+    st.plotly_chart(style_fig(fig, 340), width="stretch")
     st.caption("A jump after a version points to an update worth checking (balance change, "
                "new monetization, bugs). Versions with fewer than "
                f"{MIN_REVIEWS} reviews are hidden.")

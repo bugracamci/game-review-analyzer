@@ -1,21 +1,45 @@
-# 🎮 Mobile Game Review Analyzer
+# 📡 Game Review Radar
 
-**What do players love, what do they complain about, and how do competing games differ?**
+**Free competitor review analysis for small and indie game teams.**
 
-This tool pulls the latest Google Play reviews of competing mobile games, labels every review with an LLM
-(sentiment, topics, feature requests) and shows the results in a Streamlit dashboard built for
-LiveOps and user-acquisition (UA) teams.
+Big studios have analysts and paid tools to read thousands of player reviews. Small teams usually
+don't, yet the reviews of the games you compete with are the cheapest player research there is.
 
-The first analysis compares four **survivor-like / arena** games: *Survivor.io*, *Vampire Survivors*,
-*Brotato* and *Archero 2*. That's **1,600 reviews**, labeled for **$0**.
+Game Review Radar lets anyone add a Google Play game. An LLM labels every review (sentiment, topics,
+feature requests), and the result joins a **shared, community-built catalog** that the next team can
+compare against. Users bring their own free Gemini key, so it costs nobody anything. It's a non-profit
+community project.
 
-🔗 **Live demo:** [game-review-analyzer.streamlit.app](https://game-review-analyzer.streamlit.app) (runs on saved data, no API calls)
+🔗 **Live app:** [game-review-radar.streamlit.app](https://game-review-radar.streamlit.app)
 
 ![Overview](screenshots/01_overview.jpg)
 
 ---
 
-## Key findings
+## What you can do
+
+| | Feature |
+|---|---|
+| 📊 | **Compare up to 8 games**: sentiment, topic heatmaps (all / negative / positive reviews), stars vs. text |
+| 📈 | **Trends** by week or month, and **sentiment by app version** to spot updates that upset players |
+| 🔎 | **Review Explorer**: real quotes behind every number, with filters and text search |
+| 💡 | **AI brief** for LiveOps, UA and game design, cached and shared per set of games |
+| ➕ | **Add any Google Play game** by link or by search, in 8 store countries and languages |
+| 🏷️ | **Custom topic lists**: label reviews through your own lens (e.g. energy system, gacha fairness) |
+| 📁 | **Save comparisons** and **export** CSV, Excel (summary + reviews + feature requests) or JSON |
+| 🔑 | **Bring your own key**: Gemini (free) or Groq, optionally saved **encrypted** on your account |
+| 🤝 | **Community page**: opt-in member list, contributor credits on games, contact and game requests |
+| 🛡️ | **Admin panel**: inbox, users and bans, catalog moderation, activity log, daily limits |
+| 🔄 | **Weekly auto-refresh** of the whole catalog via GitHub Actions |
+
+Browsing is open to everyone. Signing in with Google (free) unlocks adding games, labeling, exports
+and saved comparisons.
+
+---
+
+## Case study: four survivor-like games
+
+The catalog started with 1,600 reviews of *Survivor.io*, *Vampire Survivors*, *Brotato* and *Archero 2*.
 
 | Game | Negative reviews | #1 topic in negative reviews | Store rating |
 |---|---|---|---|
@@ -25,136 +49,107 @@ The first analysis compares four **survivor-like / arena** games: *Survivor.io*,
 | Archero 2 | **37%** | Monetization & ads (44%) | 4.5★ |
 
 1. **Gameplay is what players love everywhere:** 74–91% of positive reviews mention core gameplay & fun.
-   The genre's loop works; players leave for other reasons.
-2. **Two different ways to lose players.** The free-to-play titles lose them to **monetization**: ads and
-   pricing make up 64% of Brotato's and 44% of Archero 2's negative reviews. Vampire Survivors and Survivor.io
-   lose them to **stability**: 57% and 42% of their complaints are bugs, crashes or lost progress.
-3. **The store rating hides the difference.** All four games sit between 4.4★ and 4.6★, yet the share of
-   negative reviews ranges from 25% to 37% in the recent sample.
-4. **Hidden complaints:** 3–9% of 4–5★ reviews have negative text. Vampire Survivors has the most (9%), and
-   25 of its 28 hidden complaints are bug reports from players who otherwise like the game.
-5. **329 concrete feature requests** were extracted, for example autosave during runs, a cheaper ad-removal option,
-   offline play and a way to skip daily chores.
+2. **Two different ways to lose players:** the F2P titles lose them to **monetization** (64% / 44% of
+   complaints), the others to **stability** (57% / 42% bugs, crashes, lost progress).
+3. **The store rating hides it:** all four sit at 4.4–4.6★, yet negative reviews range from 25% to 37%.
+4. **Hidden complaints:** 3–9% of 4–5★ reviews have negative text. For Vampire Survivors, 25 of 28 are bug reports.
+5. **329 feature requests** extracted, for example autosave during runs, cheaper ad removal and offline play.
 
-The full LLM-written brief (LiveOps actions, UA ad angles, opportunities for a new game) is on the
-**Insights** page of the dashboard.
-
-| What players talk about (negative reviews) | Stars vs. what the text says |
-|---|---|
-| ![Topics](screenshots/03_topics_negative.jpg) | ![Stars](screenshots/04_stars_vs_text.jpg) |
-
-| Trends over time | Review Explorer | Insights |
+| Topics in negative reviews | Review Explorer | AI brief |
 |---|---|---|
-| ![Trends](screenshots/05_trends.jpg) | ![Explorer](screenshots/06_explorer.jpg) | ![Insights](screenshots/07_insights.jpg) |
+| ![Topics](screenshots/03_topics_negative.jpg) | ![Explorer](screenshots/06_explorer.jpg) | ![Insights](screenshots/07_insights.jpg) |
 
 ---
 
-## How it works
+## Architecture
 
 ```mermaid
 flowchart LR
-    A[Google Play<br>public reviews] -->|fetch_reviews.py| B[(SQLite<br>data/reviews.db)]
-    B -->|batches of 25| C[LLM<br>Gemini Flash / Groq]
-    C -->|JSON labels| B
-    B -->|pandas stats| D[LLM insights<br>generate_insights.py]
-    D --> B
-    B -->|read only| E[Streamlit dashboard]
+    U[User<br>Google sign-in] --> S[Streamlit app]
+    S -->|add game| GP[Google Play<br>public reviews]
+    S -->|batches of 25,<br>user's own key| LLM[Gemini / Groq]
+    GP --> DB[(Supabase<br>Postgres)]
+    LLM -->|JSON labels| DB
+    DB --> S
+    GH[GitHub Actions<br>weekly] -->|refresh + label| DB
 ```
 
-1. **Fetch** (`fetch_reviews.py`): newest 400 reviews per game from Google Play (US store). Games are
-   listed in `games.json`, and each one is checked against its **expected developer**, so copycat apps with
-   similar names are rejected.
-2. **Classify** (`classify_reviews.py`): reviews go to the LLM in **batches of 25** and come back as
-   structured JSON: sentiment (judged from the text, not the stars), 1–3 topics from a fixed list, and an
-   optional feature-request summary. Results are saved after every batch, so a stopped run resumes where it
-   left off.
-3. **Insights** (`generate_insights.py`): pandas computes the numbers; the LLM only interprets them and
-   is instructed to quote only the numbers it is given.
-4. **Dashboard** (`app.py` + `pages/`): reads the saved database only. **No API calls**, so the live demo
-   is free and fast.
+```
+core/      storage, Google Play collection, LLM labeling, insights, exports, encryption, limits
+           (no Streamlit imports - the same code runs in the app, the CLI and GitHub Actions)
+ui/        sign-in, cached data, shared components, long-running actions with progress
+pages/     Overview · Trends · Review Explorer · Insights · Catalog · Add a Game ·
+           Comparisons & Export · Settings · About & Community · Admin
+scripts/   migration, secrets, weekly refresh, label agreement check, publishing
+```
 
 ### Engineering decisions
 
 | Decision | Why |
 |---|---|
-| Batches of 25 reviews per call | 1,600 reviews take 64 calls instead of 1,600, which fits free-tier limits |
-| Fixed topic list | Free-form tags differ per game; a fixed list makes games comparable |
-| Error-specific retry logic | 429 → wait (uses the server's `retryDelay`); 503 or no free quota → switch to a fallback model; 400/401 → stop, because retrying won't help |
-| Provider switch in one setting | `LLM_PROVIDER=gemini` or `groq` in `.env`; plain HTTP calls, no vendor SDKs |
-| Model recorded per label | The free tier allows ~20 requests/day per model, so labeling used three Gemini models. Each label stores its model for traceability |
-| Pandas for numbers, LLM for words | Keeps the insight brief verifiable and avoids made-up statistics |
+| **Bring-your-own-key** | The app is free to run; every user's labeling uses their own quota |
+| **Keys encrypted at rest** (Fernet) | Only if the user ticks "remember". The database never holds a readable key, and the encryption key lives only in server secrets |
+| **Google sign-in** (Streamlit `st.login`, OIDC) | No passwords stored, no password reset flow to build |
+| **One SQL layer for SQLite and Postgres** | Same queries locally (SQLite file) and in production (Supabase); ~100 lines, no ORM |
+| **Shared catalog, private workspaces** | Games and standard labels are shared, so the dataset grows with every user. Comparisons and custom topic lists stay private |
+| **Batches of 25 reviews per call** | 400 reviews take 16 calls instead of 400, which fits free-tier limits |
+| **Fixed standard topic list** | Free-form tags differ per game; a fixed list keeps games comparable. Custom lists are opt-in |
+| **Error-specific LLM handling** | 429 → wait (server's `retryDelay`); no quota or 503 → fallback model; bad key → stop and tell the user |
+| **Resumable labeling** | Saved after every batch; quota runs out → continue tomorrow, nothing lost |
+| **Daily limits + activity log** | Protects the shared catalog and the scraper from abuse; admins can tune limits live |
+| **Pandas for numbers, LLM for words** | The AI brief may only quote numbers computed by code, so it stays verifiable |
+| **Copycat protection** | Google Play search is full of look-alike games; users confirm the developer before adding |
 
-### Label quality check
+### Label quality
 
-Because the free tier forced model switches mid-run, `scripts/agreement_check.py` re-labeled a random
-sample of 100 reviews with a second model and compared the results:
-
-| Metric | Agreement |
-|---|---|
-| Same sentiment | **88%** |
-| At least one shared topic | **91%** |
-
-That's high enough for the comparisons in this report. Single-review labels should still be read as
-estimates, not ground truth.
+`scripts/agreement_check.py` re-labels a random sample with a second model and compares the results.
+On 100 reviews: **88%** same sentiment, **91%** at least one shared topic. Labels are estimates,
+good for comparing games, not ground truth for single reviews.
 
 ### Data source note
 
-The original plan was Apple's public App Store review RSS feed. Tested in October 2026, it still answers but
-returns **zero reviews for every app**. The App Store web page embeds only ~8 reviews, and the rest sits behind
-a private, token-protected API. The project therefore uses Google Play via the open-source
-[`google-play-scraper`](https://github.com/JoMingyu/google-play-scraper) package.
+Apple's public App Store review RSS feed still answers but returns **zero reviews for every app**
+(tested October 2026), so the app uses Google Play via the open-source
+[`google-play-scraper`](https://github.com/JoMingyu/google-play-scraper). Only public reviews are
+stored, without reviewer names.
 
 ---
 
 ## Tech stack
 
-Python · pandas · SQLite · Google Gemini API (free tier) · Groq API (optional fallback) ·
-Streamlit · Plotly · google-play-scraper
+Python · pandas · Streamlit (multipage, `st.login`) · Plotly · Supabase Postgres (psycopg2) ·
+SQLite · Google Gemini API · Groq API · cryptography (Fernet) · openpyxl · GitHub Actions ·
+google-play-scraper
 
 ## Run it yourself
 
 ```bash
-git clone https://github.com/<your-username>/game-review-analyzer.git
+git clone https://github.com/bugracamci/game-review-analyzer.git
 cd game-review-analyzer
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-# Dashboard only (uses the included sample data, no key needed)
-streamlit run app.py
+bash scripts/setup_mac.sh            # venv + packages + .env (works on Linux too)
+python scripts/migrate_v1.py         # load the sample data (1,600 reviews) into a local SQLite file
+bash scripts/dev_run.sh              # open the app at http://localhost:8501
 ```
 
-To collect and label fresh data, get a free key at [Google AI Studio](https://aistudio.google.com), then:
+For the full setup (Supabase, Google sign-in, encrypted keys), fill in `.env` (see `.env.example`), then:
 
 ```bash
-cp .env.example .env              # paste your key into GEMINI_API_KEY
-python fetch_reviews.py           # download reviews
-python classify_reviews.py        # label them (resumable)
-python generate_insights.py       # write the insight brief
+python scripts/make_secrets.py       # creates the encryption key + Streamlit secrets files
+bash scripts/github_secrets.sh       # gives the weekly GitHub Action its database URL and key
 ```
 
-**Add or remove a game:** edit `games.json` (name, developer, Google Play package id), then run
-`fetch_reviews.py` and `classify_reviews.py`. Removed games are deleted from the database automatically.
-
-## Project structure
-
-```
-├── app.py                 # Streamlit entry point + sidebar game selector
-├── pages/                 # Overview, Trends, Review Explorer, Insights
-├── dashboard_data.py      # cached data loading, colors, chart style
-├── fetch_reviews.py       # step 1: Google Play -> SQLite
-├── classify_reviews.py    # step 2: LLM labels in batches
-├── generate_insights.py   # step 3: LLM brief from pandas stats
-├── llm_client.py          # Gemini / Groq client with retries and fallbacks
-├── config.py              # topics, models, batch size
-├── db.py                  # SQLite schema
-├── games.json             # which games to compare
-├── scripts/               # setup, pipeline runner, label agreement check
-└── data/reviews.db        # sample data used by the live demo
-```
+Command-line tools (server key): `fetch_reviews.py`, `classify_reviews.py`, `generate_insights.py`,
+`scripts/refresh_catalog.py`.
 
 ## Limitations and next steps
 
-- One store (Google Play, US) and the latest 400 reviews per game: a recent snapshot, not the full history.
-- LLM labels are estimates (88% sentiment agreement between two models).
-- **Next:** an "add a game" form in the dashboard (local use only, to protect API quota), App Store
-  data once a reliable free source exists, and multi-country comparison.
+- Google Play only (Apple has no reliable free review source today); newest reviews, not full history.
+- LLM labels are estimates; the AI brief should be checked against the quotes.
+- Scraping public store pages sits in a grey area of store terms; daily limits keep usage small.
+- **Next:** App Store support if a free source appears, email digests for watched games,
+  and a public read-only API for the catalog.
+
+---
+
+Built by **Cengiz Buğra Camcı** for the indie game community. Say hello on the app's
+**About & Community** page.
