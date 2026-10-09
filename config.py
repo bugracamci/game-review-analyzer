@@ -26,7 +26,7 @@ def _setting(name: str, default: str = "") -> str:
 APP_NAME = "Game Review Radar"
 APP_TAGLINE = "Free competitor review analysis for small and indie game teams"
 # Fallback base URL for share links (normally read from the browser request).
-PUBLIC_URL = _setting("PUBLIC_URL", "https://game-review-analyzer.streamlit.app")
+PUBLIC_URL = _setting("PUBLIC_URL", "https://game-review-radar.streamlit.app")
 
 # --- Storage ------------------------------------------------------------------
 # Local default: a SQLite file. Production: a Postgres URL (Supabase).

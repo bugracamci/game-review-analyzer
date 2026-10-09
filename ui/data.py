@@ -120,7 +120,8 @@ def share_params() -> dict:
 
 def share_url() -> str:
     """Link that opens the current page with the same games and filters."""
-    base = (st.context.url or config.PUBLIC_URL).split("?")[0]
+    # On Streamlit Cloud the app runs inside a frame at /~/+/; links should use the normal address.
+    base = (st.context.url or config.PUBLIC_URL).split("?")[0].replace("/~/+", "")
     return f"{base}?{urlencode(share_params(), safe=',')}"
 
 
