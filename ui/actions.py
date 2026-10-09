@@ -49,18 +49,25 @@ def run_labeling(user: dict, app_ids: list[str], scheme_id: str) -> dict | None:
 
 
 def run_collect(user: dict, app_id: str, country: str, lang: str, count: int,
-                is_new: bool) -> dict | None:
+                is_new: bool, mode: str = "new", start=None, end=None,
+                version: str | None = None) -> dict | None:
+    """Download reviews. mode: new / older / range (see core.fetcher.fetch_reviews)."""
     if is_new and not _limit_ok(user, "new_games_per_day"):
         return None
     if not is_new and not _limit_ok(user, "label_runs_per_day"):
         return None
     with st.status("Downloading reviews from Google Play…", expanded=True) as status:
-        bar = st.progress(0.0)
+        bar = st.progress(0.0, text="Starting…")
+
+        def progress(kept, total, oldest, pages):
+            reached = f" · reading reviews from {oldest:%d %b %Y}" if oldest else ""
+            bar.progress(min(kept / max(total, 1), 1.0),
+                         text=f"{kept:,} saved · {pages * 200:,} read{reached}")
+
         try:
             result = fetcher.collect(db(), app_id, lang=lang, country=country, count=count,
-                                     added_by=user["email"],
-                                     progress=lambda n, total: bar.progress(min(n / total, 1.0),
-                                                                            text=f"{n} reviews"))
+                                     added_by=user["email"], progress=progress, mode=mode,
+                                     start=start, end=end, version=version)
         except Exception as e:  # noqa: BLE001
             repo.log_activity(db(), user["email"], "add_game" if is_new else "refresh", app_id,
                               status="error", details=str(e)[:300])
@@ -69,10 +76,19 @@ def run_collect(user: dict, app_id: str, country: str, lang: str, count: int,
             return None
         repo.log_activity(db(), user["email"], "add_game" if result["is_new"] else "refresh",
                           app_id, n_items=result["added"],
-                          details={"country": country, "lang": lang, "count": count})
+                          details={"country": country, "lang": lang, "count": count, "mode": mode,
+                                   "start": str(start or ""), "end": str(end or ""),
+                                   "version": version or "", "pages": result["pages"],
+                                   "stop": result["stop"]})
         refresh_caches()
-        status.update(label=f"{result['game']['name']}: {result['added']} new reviews saved",
+        status.update(label=f"{result['game']['name']}: {result['added']:,} new reviews saved",
                       state="complete")
+        if result["stop"] == "read limit reached":
+            st.caption(f"Stopped after reading {result['pages'] * 200:,} reviews (back to "
+                       f"{result['oldest']:%d %b %Y}). Google Play only lists reviews newest-first, so "
+                       "for very popular games older dates are out of reach in one download.")
+        elif result["stop"] == "version not found":
+            st.caption("That version wasn't found – check the spelling on the game's Trends page.")
     return result
 
 

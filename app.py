@@ -13,7 +13,7 @@ import config
 # Dev mode only: reload ui/ modules when their files change. Streamlit re-runs page files on
 # every rerun but keeps imported modules cached, so theme edits would otherwise need a restart.
 if os.environ.get("DEV_LOGIN_EMAIL"):
-    _ui = [m for m in ("config", "ui.theme", "ui.auth", "ui.data", "ui.components", "ui.actions")
+    _ui = [m for m in ("config", "core.repo", "core.fetcher", "ui.theme", "ui.auth", "ui.data", "ui.components", "ui.actions")
            if m in sys.modules]
     if any(os.path.getmtime(sys.modules[m].__file__) != getattr(sys.modules[m], "_mtime", None)
            for m in _ui):

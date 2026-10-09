@@ -99,7 +99,7 @@ with tab_ai:
         batch = st.slider("Reviews per AI request", 10, 100, int(prefs["batch_size"]), step=5,
                           help="Bigger batches = fewer requests, but a slightly higher chance "
                                "the model skips a review (skipped ones are retried).")
-        per_game = st.slider("Default reviews per new game", 100, config.MAX_REVIEWS_PER_GAME,
+        per_game = st.slider("Default reviews per download", 100, config.FETCH_MAX_KEEP,
                              int(prefs["reviews_per_game"]), step=100)
         markets = {m[0]: m[2] for m in config.MARKETS}
         market = st.selectbox("Default store country", list(markets),

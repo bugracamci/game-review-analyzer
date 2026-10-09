@@ -79,3 +79,47 @@ def export_buttons(user: dict | None, df, labels: dict, name: str) -> None:
                        width="stretch", on_click=log, args=("xlsx",), icon=":material/table_view:")
     c3.download_button("JSON", exports.to_json(df, labels), f"{name}-{stamp}.json",
                        "application/json", width="stretch", on_click=log, args=("json",), icon=":material/data_object:")
+
+
+def fetch_options(key: str, existing: bool, default_count: int, batch_size: int) -> dict | None:
+    """'Which reviews to download' controls, shared by Add a game and the catalog.
+
+    Returns {mode, count, start, end, version} or None while the input is incomplete.
+    """
+    import datetime as dt
+    import config
+    modes = {"Newest": "new", "Older than stored": "older", "Date range": "range",
+             "App version": "version"}
+    if not existing:
+        modes.pop("Older than stored")
+    choice = st.segmented_control("Which reviews", list(modes), default="Newest",
+                                  key=f"{key}_mode") or "Newest"
+    out = {"mode": modes[choice], "start": None, "end": None, "version": None}
+    slow = ("Google Play lists reviews newest-first, so reaching old dates or versions means "
+            "reading every newer review on the way – for popular games this can take a few minutes.")
+    if out["mode"] == "older":
+        st.caption("Continues past the reviews already stored, towards older ones.")
+    elif out["mode"] == "range":
+        today = dt.date.today()
+        picked = st.date_input("From – to", value=(today - dt.timedelta(days=365), today),
+                               max_value=today, format="YYYY-MM-DD", key=f"{key}_range")
+        if not isinstance(picked, (tuple, list)) or len(picked) != 2:
+            st.caption("Pick a start and an end date.")
+            return None
+        out.update(mode="range", start=picked[0], end=picked[1])
+        st.caption(slow)
+    elif out["mode"] == "version":
+        version = st.text_input("App version", placeholder="e.g. 1.2.3", key=f"{key}_version")
+        if not version.strip():
+            st.caption("Type the version exactly as Google Play shows it (see the Trends page).")
+            return None
+        out.update(mode="range", version=version.strip().lstrip("vV"))
+        st.caption(slow)
+    out["count"] = int(st.number_input(
+        "Reviews to download" if out["mode"] in ("new", "older") else "Keep at most",
+        min_value=50, max_value=config.FETCH_MAX_KEEP, value=default_count, step=100,
+        key=f"{key}_count"))
+    calls = -(-out["count"] // max(batch_size, 1))
+    st.caption(f"Up to {calls} AI requests with your key. Free keys have a daily limit; if it runs "
+               "out, labeling pauses and you can continue later from the Overview page.")
+    return out

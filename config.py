@@ -57,7 +57,10 @@ MAX_RETRIES = 6
 
 # --- Data collection ------------------------------------------------------------
 DEFAULT_REVIEWS_PER_GAME = 800
-MAX_REVIEWS_PER_GAME = 2000
+# No cap on reviews per game. These only limit ONE download, so a single click can't run forever:
+FETCH_MAX_KEEP = 5000      # reviews saved per download
+FETCH_MAX_PAGES = 600      # Google Play pages read per download (200 reviews each = 120k)
+DEFAULT_PERIOD = "365"     # analysis pages show the last 12 months by default
 # (store country, review language, label)
 MARKETS = [
     ("us", "en", "🇺🇸 United States (English)"),

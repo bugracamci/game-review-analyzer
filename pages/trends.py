@@ -10,7 +10,7 @@ MIN_REVIEWS = 10  # periods with fewer reviews are too noisy to show
 
 user, df, scheme = analysis_data(
     "Trends over time",
-    "Each game's sample is its latest reviews, so busier games cover a shorter period.")
+    "How sentiment moves week by week. Pick the period under Filters in the sidebar.")
 labels = scheme["labels"]
 df = df.dropna(subset=["review_date"])
 colors = color_map(sorted(df["game"].unique()))

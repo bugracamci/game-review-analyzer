@@ -108,6 +108,8 @@ def list_games(db: Database, include_hidden: bool = False,
                    (SELECT COUNT(*) FROM reviews r WHERE r.app_id = g.app_id) AS n_reviews,
                    (SELECT COUNT(*) FROM reviews r JOIN labels l ON l.review_id = r.review_id
                      WHERE r.app_id = g.app_id AND l.scheme_id = :s) AS n_labeled,
+                   (SELECT MIN(r.review_date) FROM reviews r WHERE r.app_id = g.app_id) AS first_review,
+                   (SELECT MAX(r.review_date) FROM reviews r WHERE r.app_id = g.app_id) AS last_review,
                    u.display_name AS added_by_name, u.profile_link AS added_by_link,
                    u.show_in_community AS added_by_public
             FROM games g LEFT JOIN users u ON u.email = g.added_by
@@ -138,6 +140,13 @@ def delete_game(db: Database, app_id: str) -> None:
 def known_review_ids(db: Database, app_id: str) -> set[str]:
     rows = db.query("SELECT review_id FROM reviews WHERE app_id = :a", {"a": app_id})
     return {r["review_id"] for r in rows}
+
+
+def main_market(db: Database, app_id: str) -> tuple[str, str]:
+    """(country, lang) most of this game's stored reviews come from; ('us', 'en') if none."""
+    row = db.one("""SELECT country, lang, COUNT(*) AS n FROM reviews WHERE app_id = :a
+                    GROUP BY country, lang ORDER BY n DESC LIMIT 1""", {"a": app_id})
+    return (row["country"] or "us", row["lang"] or "en") if row else ("us", "en")
 
 
 def insert_reviews(db: Database, reviews: list[dict]) -> int:

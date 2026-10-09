@@ -8,6 +8,7 @@ from core import fetcher, limits, repo
 from ui import theme
 from ui import actions
 from ui.auth import is_admin, require_login
+from ui.components import fetch_options
 from ui.data import db, select_games, selected_ids, user_api_key, user_prefs
 
 user = st.session_state.get("user")
@@ -102,25 +103,22 @@ elif existing:
 # --- 3. Options + run -----------------------------------------------------------------
 theme.section("Download and analyze", 3)
 markets = {m[0]: m for m in config.MARKETS}
-c1, c2 = st.columns(2)
-market = c1.selectbox("Store country & language", list(markets),
+market = st.selectbox("Store country & language", list(markets),
                       index=list(markets).index(prefs.get("market", "us"))
                       if prefs.get("market", "us") in markets else 0,
                       format_func=lambda m: markets[m][2])
-count = c2.slider("Newest reviews to download", 100, config.MAX_REVIEWS_PER_GAME,
-                  int(prefs["reviews_per_game"]), step=100)
-calls = -(-count // int(prefs["batch_size"]))
-st.caption(f"≈ {calls} AI requests with your key ({prefs['model']}). Free Gemini keys have a "
-           "daily request limit; if it runs out, labeling pauses and you can continue tomorrow "
-           "from the Overview page.")
+opts = fetch_options("add", bool(existing), int(prefs["reviews_per_game"]), int(prefs["batch_size"]))
 
 if not existing and not ok:
     st.warning("You've reached today's limit for new games. It resets within 24 hours.")
     st.stop()
 
-if st.button("Add & analyze", type="primary", disabled=not has_key):
+if st.button("Add & analyze" if not existing else "Download & analyze", type="primary",
+             disabled=not has_key or opts is None):
     country, lang = markets[market][0], markets[market][1]
-    result = actions.run_collect(user, app_id, country, lang, count, is_new=not existing)
+    result = actions.run_collect(user, app_id, country, lang, opts["count"], is_new=not existing,
+                                 mode=opts["mode"], start=opts["start"], end=opts["end"],
+                                 version=opts["version"])
     if result:
         summary = actions.run_labeling(user, [app_id], config.DEFAULT_SCHEME_ID)
         select_games(list(dict.fromkeys(selected_ids() + [app_id])))

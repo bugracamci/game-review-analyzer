@@ -23,8 +23,9 @@ community project.
 | 📊 | **Compare up to 8 games**: sentiment, topic heatmaps (all / negative / positive reviews), stars vs. text |
 | 📈 | **Trends** by week or month, and **sentiment by app version** to spot updates that upset players |
 | 🔁 | **Before / after an update**: pick two app versions (or an update date) and see which complaints grew or shrank |
-| 🎚️ | **Global filters**: review date (last 7–180 days) and star range, applied to every analysis page |
-| 🔗 | **Shareable links**: the URL carries the games and filters, so a comparison can be posted or sent as-is |
+| 🎚️ | **Filters and per-game slices**: last 12 months by default (or any range), star range, and each game can have its own date range, app versions or latest version - e.g. one game's 2023 reviews next to another's latest update |
+| ⬇️ | **Download what you need**: newest reviews, older ones, a date range or one app version - no per-game limit |
+| 🔗 | **Shareable links**: the URL carries the games, filters and slices, so a comparison can be posted or sent as-is |
 | 🔎 | **Review Explorer**: real quotes behind every number, with filters and text search |
 | 💡 | **AI brief** for LiveOps, UA and game design, cached and shared per set of games |
 | ➕ | **Add any Google Play game** by link or by search, in 8 store countries and languages |

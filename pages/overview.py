@@ -11,7 +11,7 @@ user, df, scheme = analysis_data(
     "What players love and hate",
     "Competing mobile games compared through their latest Google Play reviews, labeled by AI.")
 labels = scheme["labels"]
-info = games_table(include_hidden=True).set_index("name")
+info = games_table(include_hidden=True).set_index("app_id")
 names = sorted(df["game"].unique())
 colors = color_map(names)
 
@@ -27,8 +27,9 @@ for game, g in df.groupby("game"):
         if not counts.empty:
             top, top_pct = counts.index[0], float(counts.iloc[0])
     top_by_game[game] = top
-    store = info["avg_rating"].get(game) if game in info.index else None
-    rows.append({"name": game, "dev": info["developer"].get(game) if game in info.index else "",
+    app = g["app_id"].iloc[0]
+    store = info["avg_rating"].get(app) if app in info.index else None
+    rows.append({"name": game, "dev": info["developer"].get(app) if app in info.index else "",
                  "color": colors.get(game, theme.GAME_COLORS[0]),
                  "neg": share.get("negative", 0), "neu": share.get("neutral", 0),
                  "pos": share.get("positive", 0),
