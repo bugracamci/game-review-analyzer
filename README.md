@@ -35,6 +35,10 @@ community project.
 Browsing is open to everyone. Signing in with Google (free) unlocks adding games, labeling, exports
 and saved comparisons.
 
+| Game Catalog | About & Community |
+|---|---|
+| ![Catalog](screenshots/09_catalog.jpg) | ![Community](screenshots/10_community.jpg) |
+
 ---
 
 ## Case study: four survivor-like games
