@@ -1,0 +1,12 @@
+{
+  "store": "google_play",
+  "country": "us",
+  "lang": "en",
+  "reviews_per_game": 400,
+  "games": [
+    {"name": "Survivor.io", "developer": "Habby", "app_id": "com.dxx.firenow"},
+    {"name": "Vampire Survivors", "developer": "poncle", "app_id": "com.poncle.vampiresurvivors"},
+    {"name": "Brotato", "developer": "Erabit", "app_id": "com.brotato.shooting.survivors.action.roguelike"},
+    {"name": "Archero 2", "developer": "Habby", "app_id": "com.xq.archeroii"}
+  ]
+}

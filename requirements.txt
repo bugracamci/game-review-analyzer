@@ -1,0 +1,6 @@
+requests>=2.31
+pandas>=2.0
+streamlit>=1.36
+plotly>=5.20
+python-dotenv>=1.0
+google-play-scraper>=1.2.7

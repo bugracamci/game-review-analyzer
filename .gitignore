@@ -1,0 +1,15 @@
+# Secrets - never commit
+.env
+.streamlit/secrets.toml
+
+# Local environment
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Personal Turkish build notes (remove this line if you want to publish them)
+notes/
+
+# Run logs
+logs/
