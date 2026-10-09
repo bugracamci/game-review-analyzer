@@ -117,6 +117,9 @@ SCHEMA = [
     )""",
 ]
 
+TABLES = ["users", "games", "reviews", "topic_schemes", "labels", "comparisons",
+          "insights", "activity", "feedback", "app_settings"]
+
 _PARAM = re.compile(r"(?<![:\w]):([A-Za-z_]\w*)")
 
 
@@ -210,6 +213,12 @@ class Database:
     def init_schema(self) -> None:
         for statement in SCHEMA:
             self.execute(statement)
+        if self.kind == "postgres":
+            # Supabase also exposes every table through a public REST API. Row Level Security
+            # with no policies closes that door completely; the app itself connects as the
+            # table owner, which is not affected.
+            for table in TABLES:
+                self.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
 
 
 def _is_connection_error(e: Exception) -> bool:

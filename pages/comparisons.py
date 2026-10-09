@@ -1,4 +1,6 @@
 """My Comparisons & Export: save game sets, reload them, download their data."""
+from html import escape
+
 import streamlit as st
 
 from core import repo
@@ -20,8 +22,8 @@ current = selected_ids()
 if not current:
     st.info("Pick games in the sidebar first.")
 else:
-    st.markdown(" · ".join(names.get(a, a) for a in current)
-                + (f"  \n<small>Topic list: {scheme['name']}</small>"), unsafe_allow_html=True)
+    st.markdown(escape(" · ".join(names.get(a, a) for a in current))
+                + (f"  \n<small>Topic list: {escape(scheme['name'])}</small>"), unsafe_allow_html=True)
     with st.form("save_cmp", clear_on_submit=True):
         name = st.text_input("Name", placeholder="e.g. Survivor-like competitors, Q4")
         if st.form_submit_button("Save comparison", type="primary") and name.strip():
@@ -36,8 +38,8 @@ if not saved:
 for c in saved:
     with st.container(border=True):
         cols = st.columns([5, 1, 1])
-        cols[0].markdown(f"**{c['name']}**  \n<small>"
-                         + " · ".join(names.get(a, a + ' (removed)') for a in c["app_ids"])
+        cols[0].markdown(f"**{escape(c['name'])}**  \n<small>"
+                         + escape(" · ".join(names.get(a, a + ' (removed)') for a in c["app_ids"]))
                          + f" · saved {c['created_at'][:10]}</small>", unsafe_allow_html=True)
         if cols[1].button("Open", key=f"open_{c['id']}"):
             select_games([a for a in c["app_ids"] if a in names], c["scheme_id"])

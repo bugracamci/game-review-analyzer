@@ -1,4 +1,6 @@
 """Add a Game: paste a Google Play link (or search), then download + label its reviews."""
+from html import escape
+
 import streamlit as st
 
 import config
@@ -45,8 +47,9 @@ with tab_search:
         cols = st.columns([1, 6, 2])
         if r.get("icon_url"):
             cols[0].image(r["icon_url"], width=40)
-        cols[1].markdown(f"**{r['name']}**  \n<small>{r.get('developer') or ''} · "
-                         f"{r.get('genre') or ''} · `{r['app_id']}`</small>",
+        cols[1].markdown(f"**{escape(str(r['name']))}**  \n<small>"
+                         f"{escape(str(r.get('developer') or ''))} · "
+                         f"{escape(str(r.get('genre') or ''))} · {escape(r['app_id'])}</small>",
                          unsafe_allow_html=True)
         if cols[2].button("Choose", key=f"pick_{r['app_id']}"):
             st.session_state["add_candidate"] = r["app_id"]

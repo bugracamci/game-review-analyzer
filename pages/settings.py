@@ -2,6 +2,7 @@
 import re
 
 import streamlit as st
+from html import escape
 
 import config
 from core import crypto, repo
@@ -120,7 +121,8 @@ with tab_topics:
     for s in repo.list_schemes(db(), email)[1:]:
         with st.container(border=True):
             cols = st.columns([5, 1])
-            cols[0].markdown(f"**{s['name']}**  \n<small>" + ", ".join(s["labels"].values())
+            cols[0].markdown(f"**{escape(s['name'])}**  \n<small>"
+                             + escape(", ".join(s["labels"].values()))
                              + "</small>", unsafe_allow_html=True)
             if cols[1].button("Delete", key=f"del_s_{s['id']}"):
                 repo.delete_scheme(db(), email, s["id"])
