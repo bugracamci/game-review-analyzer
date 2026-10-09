@@ -9,7 +9,7 @@ LiveOps and user-acquisition (UA) teams.
 The first analysis compares four **survivor-like / arena** games: *Survivor.io*, *Vampire Survivors*,
 *Brotato* and *Archero 2*. That's **1,600 reviews**, labeled for **$0**.
 
-🔗 **Live demo:** _add your Streamlit Cloud link here_
+🔗 **Live demo:** [game-review-analyzer.streamlit.app](https://game-review-analyzer.streamlit.app) (runs on saved data, no API calls)
 
 ![Overview](screenshots/01_overview.jpg)
 
